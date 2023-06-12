@@ -4,29 +4,60 @@ namespace App\Form;
 
 use App\Entity\User;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Validator\Constraints\AtLeastOneOf;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 
 class RegistrationFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('email')
-            ->add('agreeTerms', CheckboxType::class, [
-                'mapped' => false,
+
+            
+            ->add('nom' ,TextType::class,[
+                'required' => true,
+                'constraints' => [new NotBlank(['message' => 'Entrez votre nom',]),
+                new Length(['min' => 2,'minMessage' => 'Votre nom doit avoir plus de 2 caractères',
+                    // max length allowed by Symfony for security reasons
+                    'max' => 4096, ]),
+                ]
+            ,])
+
+
+            ->add('prenom' ,TextType::class,[
+                'required' => true,
+                'constraints' => [new NotBlank(['message' => 'Entrez votre prenom',]),
+                new Length(['min' => 2,'minMessage' => 'Votre nom doit avoir plus de 2 caractères',
+                    // max length allowed by Symfony for security reasons
+                    'max' => 4096, ]),
+                ]
+            ,])
+
+            ->add('email',EmailType::class, [
+                'required' => true,
                 'constraints' => [
-                    new IsTrue([
-                        'message' => 'You should agree to our terms.',
+                    new Email([
+                        'message' => 'Votre Email n\'est pas valide.',
                     ]),
-                ],
-            ])
+                ],    
+            ],)
+            
+
             ->add('plainPassword', PasswordType::class, [
+                'required' => true,
                 // instead of being set onto the object directly,
                 // this is read and encoded in the controller
                 'mapped' => false,
@@ -37,12 +68,37 @@ class RegistrationFormType extends AbstractType
                     ]),
                     new Length([
                         'min' => 6,
-                        'minMessage' => 'Your password should be at least {{ limit }} characters',
+                        'minMessage' => 'Votre mot de passe doit avoir au moins 6 caractères alphanumériques et caractères spécials',
                         // max length allowed by Symfony for security reasons
                         'max' => 4096,
                     ]),
                 ],
             ])
+
+            /*
+            ->add('role' ,ChoiceType::class,[
+                'constraints' => [new NotBlank(['message' => 'Entrez votre role',]),
+
+                ]
+            ,])
+            */
+
+            ->add('equipe' ,IntegerType::class,[
+                'required' => true,
+                'constraints' => [new NotBlank(['message' => 'Entrez votre équipe',]),
+                new Range(['min' => 0,
+                    'max' => 5, 'notInRangeMessage' => 'Saisie incorrecte', ]),
+                ]
+            ,])
+
+
+            ->add('poste' ,TextType::class,[
+                'required' => true,
+                'constraints' => [new NotBlank(['message' => 'Entrez votre poste',]), 
+                 ]
+
+            ,])
+            
         ;
     }
 

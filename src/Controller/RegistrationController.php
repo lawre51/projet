@@ -3,17 +3,21 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Form\RegistrationFormType;
+use App\Service\ServiceEvent;
 use App\Security\EmailVerifier;
+use App\Form\RegistrationFormType;
+use Symfony\Component\Mime\Address;
+use App\Controller\ProfileController;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mime\Address;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 
 class RegistrationController extends AbstractController
@@ -26,13 +30,34 @@ class RegistrationController extends AbstractController
     }
 
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, 
+    EntityManagerInterface $entityManager,
+    AuthenticationUtils $authenticationUtils,ProfileController $profil,ServiceEvent $serviceEvent): Response
     {
+
+        try{
+            $error_message_acces_denied ='L\'utilisateur tente d\'accéder 
+            à une page réservée aux administrateurs';
+            //Contrôle d'accès:remplace - { path: ^/admin, roles: ROLE_USER } security.yaml
+            $this->denyAccessUnlessGranted('ROLE_ADMIN', null, $error_message_acces_denied );
+          }catch (AccessDeniedException  $e) {
+            $serviceEvent->runEvent($e->getMessage());
+            return $this->render('Blog/home.html.twig',['user'=>$profil->index(), 'message'=>$e->getMessage()]);
+          }
+
+
+
         $user = new User();
         $form = $this->createForm(RegistrationFormType::class, $user);
         $form->handleRequest($request);
 
+        
+        //throw new RfcComplianceException(sprintf('Email  does not comply with addr-spec of RFC 2822.'));
+       
+       
+       
         if ($form->isSubmitted() && $form->isValid()) {
+            
             // encode the plain password
             $user->setPassword(
                 $userPasswordHasher->hashPassword(
@@ -40,7 +65,7 @@ class RegistrationController extends AbstractController
                     $form->get('plainPassword')->getData()
                 )
             );
-
+            
             $entityManager->persist($user);
             $entityManager->flush();
 
@@ -54,11 +79,14 @@ class RegistrationController extends AbstractController
             );
             // do anything else you need here, like send an email
 
-            return $this->redirectToRoute('_profiler_home');
+            ?><script>alert('Le salarié a bien été enregistré')</script><?php
+            
+            return $this->redirectToRoute('admin');
         }
 
         return $this->render('registration/register.html.twig', [
-            'registrationForm' => $form->createView(),
+           // 'registrationForm' => $form->createView(),
+           'registrationForm' => $form,
         ]);
     }
 
